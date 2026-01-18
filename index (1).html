@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>HELPDESK</title>
+  <style>
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:linear-gradient(135deg,#06283d,#0b3c49,#0f4c5c);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#333;
+    }
+    .card{
+      background:#fff;
+      border-radius:12px;
+      padding:20px;
+      width:380px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      display:none;
+    }
+    .card h2{margin-top:0;text-align:center}
+    input, textarea, select, button{
+      width:100%;
+      padding:10px;
+      margin:8px 0;
+      border-radius:8px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    textarea{min-height:120px;resize:vertical}
+    button{
+      background:#0b5ed7;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:bold;
+    }
+    button:hover{opacity:.9}
+    .link{background:none;color:#0b5ed7;text-decoration:underline;cursor:pointer}
+    .table-wrap{max-height:300px;overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{border:1px solid #ccc;padding:6px;text-align:left}
+    th{background:#f1f1f1}
+    .logout{background:#dc3545;margin-top:10px}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+  <h2>Login Helpdesk</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">LOGIN</button>
+  <button class="link" onclick="showGuest()">Masuk sebagai Guest</button>
+</div>
+
+<!-- GUEST -->
+<div class="card" id="guestCard">
+  <h2>Pelaporan Guest</h2>
+  <input id="gNama" placeholder="Nama">
+  <input id="gTim" placeholder="Tim / Bagian">
+  <textarea id="gKeluhan" placeholder="Keluhan"></textarea>
+  <button onclick="kirimPelaporan()">KIRIM</button>
+  <button class="logout" onclick="backToLogin()">Kembali</button>
+</div>
+
+<!-- ADMIN -->
+<div class="card" id="adminCard" style="width:90%;max-width:900px">
+  <h2>Dashboard Admin</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>No Tiket</th><th>Tanggal</th><th>Nama</th><th>Tim</th><th>Keluhan</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="dataPelaporan"></tbody>
+    </table>
+  </div>
+  <button class="logout" onclick="logout()">LOGOUT</button>
+</div>
+
+<script>
+  // ===== INIT =====
+  document.getElementById('loginCard').style.display='block';
+
+  // ===== LOGIN =====
+  function login(){
+    const u=document.getElementById('username').value;
+    const p=document.getElementById('password').value;
+    google.script.run.withSuccessHandler(res=>{
+      if(res.status==='success'){
+        if(res.role==='ADMIN' || res.role==='SUPER ADMIN'){
+          showAdmin();
+        }else{
+          showGuest();
+        }
+      }else{
+        alert('Login gagal');
+      }
+    }).loginUser(u,p);
+  }
+
+  // ===== GUEST =====
+  function kirimPelaporan(){
+    const nama=gNama.value;
+    const tim=gTim.value;
+    const keluhan=gKeluhan.value;
+    if(!nama||!tim||!keluhan){alert('Lengkapi data');return;}
+    google.script.run.withSuccessHandler(res=>{
+      alert('Tiket berhasil dibuat: '+res.tiket);
+      gNama.value='';gTim.value='';gKeluhan.value='';
+    }).simpanPelaporan(nama,tim,keluhan);
+  }
+
+  // ===== ADMIN =====
+  function showAdmin(){
+    hideAll();
+    adminCard.style.display='block';
+    loadData();
+  }
+  function loadData(){
+    google.script.run.withSuccessHandler(data=>{
+      const tb=document.getElementById('dataPelaporan');
+      tb.innerHTML='';
+      data.forEach(r=>{
+        const tr=document.createElement('tr');
+        r.forEach(c=>{
+          const td=document.createElement('td');
+          td.textContent=c;
+          tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      });
+    }).getDataPelaporan();
+  }
+
+  // ===== LOGOUT =====
+  function logout(){
+    google.script.run.withSuccessHandler(()=>{
+      backToLogin();
+    }).logout();
+  }
+
+  // ===== NAV =====
+  function showGuest(){hideAll();guestCard.style.display='block';}
+  function backToLogin(){hideAll();loginCard.style.display='block';}
+  function hideAll(){loginCard.style.display='none';guestCard.style.display='none';adminCard.style.display='none';}
+</script>
+</body>
+</html>
